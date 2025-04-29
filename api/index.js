@@ -1,17 +1,16 @@
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: false, // importante para aceitar FormData
   },
 };
 
 export default async function handler(req, res) {
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end(); // CORS preflight
+    return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
@@ -19,22 +18,29 @@ export default async function handler(req, res) {
   }
 
   try {
-    const webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-clientes'; // coloque o seu
+    const webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-clientes'; // seu webhook real
 
-    const response = await fetch(webhookUrl, {
+    const forwardRes = await fetch(webhookUrl, {
       method: 'POST',
-      headers: req.headers,
+      headers: {
+        'Content-Type': req.headers['content-type'],
+      },
       body: req,
     });
 
-    const blob = await response.blob();
+    if (!forwardRes.ok) {
+      const msg = await forwardRes.text();
+      throw new Error(msg);
+    }
+
+    const blob = await forwardRes.blob();
     const buffer = Buffer.from(await blob.arrayBuffer());
 
     res.setHeader('Content-Disposition', 'attachment; filename="importacao_clientes.csv"');
     res.setHeader('Content-Type', 'text/csv');
     res.status(200).send(buffer);
   } catch (error) {
-    console.error('Erro ao enviar para o N8N:', error);
-    res.status(500).json({ error: 'Erro no proxy' });
+    console.error('Erro no proxy:', error);
+    res.status(500).json({ error: 'Erro ao processar o arquivo.' });
   }
 }
