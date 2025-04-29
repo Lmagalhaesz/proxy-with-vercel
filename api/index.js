@@ -1,11 +1,10 @@
 export const config = {
   api: {
-    bodyParser: false, // importante para aceitar FormData
+    bodyParser: false,
   },
 };
 
 export default async function handler(req, res) {
-   // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -19,30 +18,42 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Lê o arquivo inteiro da request
+    const buffer = await streamToBuffer(req);
     const webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-clientes'; // seu webhook real
 
-    const response = await fetch(webhookUrl, {
+    const n8nResponse = await fetch(webhookUrl, {
       method: "POST",
       headers: {
-        "Content-Type": req.headers["content-type"], // importante: só repassa o Content-Type
+        "Content-Type": req.headers['content-type'],
       },
-      body: req, // repassa a stream bruta
+      body: buffer,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Erro do N8N:", errorText);
-      return res.status(500).json({ error: "Erro vindo do N8N", detail: errorText });
+    if (!n8nResponse.ok) {
+      const msg = await n8nResponse.text();
+      console.error('Erro N8N:', msg);
+      return res.status(500).json({ error: "Erro ao repassar para o N8N", detail: msg });
     }
 
-    const blob = await response.blob();
-    const buffer = Buffer.from(await blob.arrayBuffer());
+    const blob = await n8nResponse.blob();
+    const finalBuffer = Buffer.from(await blob.arrayBuffer());
 
-    res.setHeader("Content-Disposition", 'attachment; filename="importacao_clientes.csv"');
-    res.setHeader("Content-Type", "text/csv");
-    res.status(200).send(buffer);
+    res.setHeader('Content-Disposition', 'attachment; filename="importacao_clientes.csv"');
+    res.setHeader('Content-Type', 'text/csv');
+    res.status(200).send(finalBuffer);
   } catch (err) {
-    console.error("Erro no proxy Vercel:", err);
-    res.status(500).json({ error: "Erro no proxy", detail: err.message });
+    console.error("Erro no Proxy:", err);
+    res.status(500).json({ error: "Erro no Proxy", detail: err.message });
   }
+}
+
+// Função para ler stream para buffer
+function streamToBuffer(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on('data', chunk => chunks.push(chunk));
+    stream.on('error', reject);
+    stream.on('end', () => resolve(Buffer.concat(chunks)));
+  });
 }
