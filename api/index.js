@@ -5,42 +5,44 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+   // CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método não permitido' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método não permitido" });
   }
 
   try {
     const webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-clientes'; // seu webhook real
 
-    const forwardRes = await fetch(webhookUrl, {
-      method: 'POST',
+    const response = await fetch(webhookUrl, {
+      method: "POST",
       headers: {
-        'Content-Type': req.headers['content-type'],
+        "Content-Type": req.headers["content-type"], // importante: só repassa o Content-Type
       },
-      body: req,
+      body: req, // repassa a stream bruta
     });
 
-    if (!forwardRes.ok) {
-      const msg = await forwardRes.text();
-      throw new Error(msg);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Erro do N8N:", errorText);
+      return res.status(500).json({ error: "Erro vindo do N8N", detail: errorText });
     }
 
-    const blob = await forwardRes.blob();
+    const blob = await response.blob();
     const buffer = Buffer.from(await blob.arrayBuffer());
 
-    res.setHeader('Content-Disposition', 'attachment; filename="importacao_clientes.csv"');
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader("Content-Disposition", 'attachment; filename="importacao_clientes.csv"');
+    res.setHeader("Content-Type", "text/csv");
     res.status(200).send(buffer);
-  } catch (error) {
-    console.error('Erro no proxy:', error);
-    res.status(500).json({ error: 'Erro ao processar o arquivo.' });
+  } catch (err) {
+    console.error("Erro no proxy Vercel:", err);
+    res.status(500).json({ error: "Erro no proxy", detail: err.message });
   }
 }
