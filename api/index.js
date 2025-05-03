@@ -33,19 +33,17 @@ export default async function handler(req, res) {
       headers: {
         "Content-Type": "application/octet-stream",
       },
-      body: req,
+      body: buffer,
     });
 
+    const arrayBuffer = await n8nResponse.arrayBuffer(); // ✅ consumir direto
     if (!n8nResponse.ok) {
-      const text = await n8nResponse.text(); // consumir uma única vez
-      console.error('Erro N8N:', text);
-      return res.status(500).json({ error: "Erro ao repassar para o N8N", detail: text });
+      const msg = Buffer.from(arrayBuffer).toString('utf-8'); // interpretar erro como texto
+      console.error('Erro N8N:', msg);
+      return res.status(500).json({ error: "Erro ao repassar para o N8N", detail: msg });
     }
 
-    const blob = await n8nResponse.blob();
-    const arrayBuffer = await blob.arrayBuffer(); // 👈 só consome uma vez
     const finalBuffer = Buffer.from(arrayBuffer);
-
     res.setHeader('Content-Disposition', `attachment; filename="${downloadFileName}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.status(200).send(finalBuffer);
