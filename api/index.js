@@ -1,6 +1,7 @@
 import Busboy from 'busboy';
 import FormData from 'form-data';
-import { fetch } from 'undici';
+import fetch from 'node-fetch';
+
 
 export const config = {
   api: { bodyParser: false }
