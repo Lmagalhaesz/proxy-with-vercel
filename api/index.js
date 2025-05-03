@@ -20,9 +20,7 @@ export default async function handler(req, res) {
   try {
     const { buffer, type, filename } = await parseFormData(req);
 
-    let webhookUrl;
-    let downloadFileName;
-
+    let webhookUrl, downloadFileName;
     if (type === 'Clientes') {
       webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-clientes';
       downloadFileName = 'importacao_clientes_f.xlsx';
@@ -37,7 +35,6 @@ export default async function handler(req, res) {
     formData.set('file', new File([buffer], filename, { type: 'application/octet-stream' }));
 
     const encoder = new FormDataEncoder(formData);
-
     const n8nResponse = await fetch(webhookUrl, {
       method: 'POST',
       headers: encoder.headers,
@@ -50,23 +47,16 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Erro ao repassar para o N8N", detail: msg });
     }
 
-    const arrayBuffer = await n8nResponse.arrayBuffer();
-    const finalBuffer = Buffer.from(arrayBuffer);
+    const blob = await n8nResponse.blob();
+    const finalBuffer = Buffer.from(await blob.arrayBuffer());
 
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setHeader('Content-Disposition', `attachment; filename="${downloadFileName}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.status(200).send(finalBuffer);
+
   } catch (err) {
-  console.error("Erro no Proxy:", err);
-
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  res.status(500).json({ error: true, message: "Erro no Proxy", detail: err.message });
+    console.error("Erro no Proxy:", err);
+    res.status(500).json({ error: true, message: "Erro no Proxy", detail: err.message });
   }
 }
 
