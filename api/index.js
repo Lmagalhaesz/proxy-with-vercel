@@ -1,5 +1,7 @@
 import Busboy from 'busboy';
-import FormData from 'form-data';
+import { FormData, File } from 'formdata-node';
+import { FormDataEncoder } from 'form-data-encoder';
+import { Readable } from 'stream';
 
 export const config = {
   api: {
@@ -31,14 +33,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Tipo inválido. Use 'Clientes' ou 'Servicos'" });
     }
 
-    // Repassar como multipart/form-data com form-data
-    const form = new FormData();
-    form.append('file', buffer, { filename });
+    const formData = new FormData();
+    formData.set('file', new File([buffer], filename, { type: 'application/octet-stream' }));
+
+    const encoder = new FormDataEncoder(formData);
 
     const n8nResponse = await fetch(webhookUrl, {
-      method: "POST",
-      headers: form.getHeaders(),
-      body: form,
+      method: 'POST',
+      headers: encoder.headers,
+      body: Readable.from(encoder.encode()),
     });
 
     if (!n8nResponse.ok) {
@@ -60,7 +63,6 @@ export default async function handler(req, res) {
   }
 }
 
-// Função para fazer o parse do multipart/form-data
 function parseFormData(req) {
   return new Promise((resolve, reject) => {
     const busboy = Busboy({ headers: req.headers });
