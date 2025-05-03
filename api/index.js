@@ -7,13 +7,14 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  // Sempre envia CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Método não permitido" });
+  if (req.method !== "POST") {
+    return res.status(200).json({ error: true, message: "Método não permitido" });
+  }
 
   try {
     const { buffer, type, filename } = await parseFormData(req);
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
       webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-servicos';
       downloadFileName = 'importacao_servicos_f.xlsx';
     } else {
-      return res.status(400).json({ error: "Tipo inválido. Use 'Clientes' ou 'Servicos'" });
+      return res.status(200).json({ error: true, message: "Tipo inválido. Use 'Clientes' ou 'Servicos'" });
     }
 
     const n8nResponse = await fetch(webhookUrl, {
@@ -42,8 +43,7 @@ export default async function handler(req, res) {
     if (!n8nResponse.ok) {
       const msg = await n8nResponse.text();
       console.error('Erro N8N:', msg);
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      return res.status(500).json({ error: "Erro ao repassar para o N8N", detail: msg });
+      return res.status(200).json({ error: true, message: "Erro ao repassar para o N8N", detail: msg });
     }
 
     const blob = await n8nResponse.blob();
@@ -51,17 +51,15 @@ export default async function handler(req, res) {
 
     res.setHeader('Content-Disposition', `attachment; filename="${downloadFileName}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.status(200).send(finalBuffer);
+    return res.status(200).send(finalBuffer);
 
   } catch (err) {
     console.error("Erro no Proxy:", err);
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.status(500).json({ error: "Erro no Proxy", detail: err.message });
+    return res.status(200).json({ error: true, message: "Erro no Proxy", detail: err.message });
   }
 }
 
+// Função auxiliar para ler FormData
 function parseFormData(req) {
   return new Promise((resolve, reject) => {
     const busboy = Busboy({ headers: req.headers });
