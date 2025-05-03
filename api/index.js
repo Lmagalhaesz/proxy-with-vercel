@@ -1,9 +1,9 @@
 import Busboy from 'busboy';
 import FormData from 'form-data';
-import fetch from 'node-fetch';
+import { fetch } from 'undici';
 
 export const config = {
-  api: { bodyParser: false },
+  api: { bodyParser: false }
 };
 
 export default async function handler(req, res) {
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-servicos';
       downloadFileName = 'importacao_servicos_f.xlsx';
     } else {
-      return res.status(400).json({ error: "Tipo inválido" });
+      return res.status(400).json({ error: "Tipo inválido. Use 'Clientes' ou 'Servicos'" });
     }
 
     const form = new FormData();
