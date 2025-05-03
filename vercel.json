@@ -9,7 +9,6 @@
   "routes": [
     {
       "src": "/",
-      "methods": ["POST", "OPTIONS"],
       "dest": "api/index.js"
     }
   ]
