@@ -2,7 +2,6 @@
   "dependencies": {
     "busboy": "^1.6.0",
     "form-data": "^4.0.2",
-    "form-data-encoder": "^4.0.2",
-    "formdata-node": "^6.0.3"
+    "node-fetch": "^3.3.1"
   }
 }

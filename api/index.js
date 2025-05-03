@@ -1,12 +1,9 @@
 import Busboy from 'busboy';
-import { FormData, File } from 'formdata-node';
-import { FormDataEncoder } from 'form-data-encoder';
-import { Readable } from 'stream';
+import FormData from 'form-data';
+import fetch from 'node-fetch';
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };
 
 export default async function handler(req, res) {
@@ -20,7 +17,9 @@ export default async function handler(req, res) {
   try {
     const { buffer, type, filename } = await parseFormData(req);
 
-    let webhookUrl, downloadFileName;
+    let webhookUrl = '';
+    let downloadFileName = '';
+
     if (type === 'Clientes') {
       webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-clientes';
       downloadFileName = 'importacao_clientes_f.xlsx';
@@ -28,27 +27,25 @@ export default async function handler(req, res) {
       webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-servicos';
       downloadFileName = 'importacao_servicos_f.xlsx';
     } else {
-      return res.status(400).json({ error: "Tipo inválido. Use 'Clientes' ou 'Servicos'" });
+      return res.status(400).json({ error: "Tipo inválido" });
     }
 
-    const formData = new FormData();
-    formData.set('file', new File([buffer], filename, { type: 'application/octet-stream' }));
+    const form = new FormData();
+    form.append('file', buffer, { filename });
 
-    const encoder = new FormDataEncoder(formData);
     const n8nResponse = await fetch(webhookUrl, {
       method: 'POST',
-      headers: encoder.headers,
-      body: Readable.from(encoder.encode()),
+      headers: form.getHeaders(),
+      body: form
     });
 
     if (!n8nResponse.ok) {
       const msg = await n8nResponse.text();
-      console.error('Erro N8N:', msg);
-      return res.status(500).json({ error: "Erro ao repassar para o N8N", detail: msg });
+      return res.status(500).json({ error: "Erro do N8N", detail: msg });
     }
 
-    const blob = await n8nResponse.blob();
-    const finalBuffer = Buffer.from(await blob.arrayBuffer());
+    const arrayBuffer = await n8nResponse.arrayBuffer();
+    const finalBuffer = Buffer.from(arrayBuffer);
 
     res.setHeader('Content-Disposition', `attachment; filename="${downloadFileName}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -56,17 +53,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error("Erro no Proxy:", err);
-  
-    // Evita erro CORS mesmo em falha
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  
-    return res.status(500).json({
-      error: true,
-      message: "Erro no Proxy",
-      detail: err.message,
-    });
+    res.status(500).json({ error: "Erro no Proxy", detail: err.message });
   }
 }
 
@@ -79,11 +66,11 @@ function parseFormData(req) {
 
     busboy.on('file', (_, file, info) => {
       filename = info.filename || filename;
-      file.on('data', (data) => chunks.push(data));
+      file.on('data', chunk => chunks.push(chunk));
     });
 
-    busboy.on('field', (fieldname, val) => {
-      if (fieldname === 'type') type = val;
+    busboy.on('field', (name, val) => {
+      if (name === 'type') type = val;
     });
 
     busboy.on('finish', () => resolve({ buffer: Buffer.concat(chunks), type, filename }));
