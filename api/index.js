@@ -58,8 +58,13 @@ export default async function handler(req, res) {
     res.status(200).send(finalBuffer);
 
   } catch (err) {
-    console.error("Erro no Proxy:", err);
-    res.status(500).json({ error: "Erro no Proxy", detail: err.message });
+  console.error("Erro no Proxy:", err);
+
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  res.status(500).json({ error: true, message: "Erro no Proxy", detail: err.message });
   }
 }
 
