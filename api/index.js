@@ -50,13 +50,15 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Erro ao repassar para o N8N", detail: msg });
     }
 
-    const blob = await n8nResponse.blob();
-    const finalBuffer = Buffer.from(await blob.arrayBuffer());
+    const arrayBuffer = await n8nResponse.arrayBuffer();
+    const finalBuffer = Buffer.from(arrayBuffer);
 
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setHeader('Content-Disposition', `attachment; filename="${downloadFileName}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.status(200).send(finalBuffer);
-
   } catch (err) {
   console.error("Erro no Proxy:", err);
 
