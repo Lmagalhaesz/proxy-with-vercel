@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       headers: {
         "Content-Type": "application/octet-stream",
       },
-      body: buffer,
+      body: req,
     });
 
     if (!n8nResponse.ok) {
