@@ -56,7 +56,17 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error("Erro no Proxy:", err);
-    res.status(500).json({ error: true, message: "Erro no Proxy", detail: err.message });
+  
+    // Evita erro CORS mesmo em falha
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  
+    return res.status(500).json({
+      error: true,
+      message: "Erro no Proxy",
+      detail: err.message,
+    });
   }
 }
 
