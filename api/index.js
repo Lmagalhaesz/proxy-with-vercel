@@ -27,6 +27,9 @@ export default async function handler(req, res) {
     } else if (type === 'Servicos') {
       webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-servicos';
       downloadFileName = 'importacao_servicos_f.xlsx';
+    } else if (type === 'Produtos') {
+      webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-produtos';
+      downloadFileName = 'importacao_produtos_f.xlsx';
     } else {
       return res.status(400).json({ error: "Tipo inválido. Use 'Clientes' ou 'Servicos'" });
     }
