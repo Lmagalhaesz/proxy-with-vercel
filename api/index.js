@@ -1,7 +1,10 @@
 import Busboy from 'busboy';
+import FormData from 'form-data';
 
 export const config = {
-  api: { bodyParser: false },
+  api: {
+    bodyParser: false,
+  },
 };
 
 export default async function handler(req, res) {
@@ -13,7 +16,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Método não permitido" });
 
   try {
-    const { buffer, type } = await parseFormData(req);
+    const { buffer, type, filename } = await parseFormData(req);
 
     let webhookUrl;
     let downloadFileName;
@@ -28,22 +31,25 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Tipo inválido. Use 'Clientes' ou 'Servicos'" });
     }
 
+    // Repassar como multipart/form-data com form-data
+    const form = new FormData();
+    form.append('file', buffer, { filename });
+
     const n8nResponse = await fetch(webhookUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/octet-stream",
-      },
-      body: buffer,
+      headers: form.getHeaders(),
+      body: form,
     });
 
-    const arrayBuffer = await n8nResponse.arrayBuffer(); // ✅ consumir direto
     if (!n8nResponse.ok) {
-      const msg = Buffer.from(arrayBuffer).toString('utf-8'); // interpretar erro como texto
+      const msg = await n8nResponse.text();
       console.error('Erro N8N:', msg);
       return res.status(500).json({ error: "Erro ao repassar para o N8N", detail: msg });
     }
 
-    const finalBuffer = Buffer.from(arrayBuffer);
+    const blob = await n8nResponse.blob();
+    const finalBuffer = Buffer.from(await blob.arrayBuffer());
+
     res.setHeader('Content-Disposition', `attachment; filename="${downloadFileName}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.status(200).send(finalBuffer);
@@ -54,13 +60,16 @@ export default async function handler(req, res) {
   }
 }
 
+// Função para fazer o parse do multipart/form-data
 function parseFormData(req) {
   return new Promise((resolve, reject) => {
     const busboy = Busboy({ headers: req.headers });
     const chunks = [];
     let type = 'Clientes';
+    let filename = 'arquivo.xlsx';
 
-    busboy.on('file', (_, file) => {
+    busboy.on('file', (_, file, info) => {
+      filename = info.filename || filename;
       file.on('data', (data) => chunks.push(data));
     });
 
@@ -68,7 +77,7 @@ function parseFormData(req) {
       if (fieldname === 'type') type = val;
     });
 
-    busboy.on('finish', () => resolve({ buffer: Buffer.concat(chunks), type }));
+    busboy.on('finish', () => resolve({ buffer: Buffer.concat(chunks), type, filename }));
     busboy.on('error', reject);
     req.pipe(busboy);
   });
