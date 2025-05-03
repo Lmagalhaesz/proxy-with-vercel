@@ -34,11 +34,9 @@ export default async function handler(req, res) {
 
     const n8nResponse = await fetch(webhookUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/octet-stream",
-      },
-      body: buffer,
+      body: req,
     });
+
 
     if (!n8nResponse.ok) {
       const msg = await n8nResponse.text();
