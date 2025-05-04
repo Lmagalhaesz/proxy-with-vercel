@@ -66,7 +66,7 @@ function parseFormData(req) {
     const busboy = Busboy({ headers: req.headers });
     const chunks = [];
     let type = 'Clientes';
-    let filename = 'arquivo.xlsx';
+    let filename = 'arquivo.csv';
 
     busboy.on('file', (_, file, info) => {
       filename = info.filename || filename;
