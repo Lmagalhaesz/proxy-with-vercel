@@ -22,13 +22,13 @@ export default async function handler(req, res) {
     let downloadFileName = '';
 
     if (type === 'Clientes') {
-      webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-clientes';
+      webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook/importacao-clientes';
       downloadFileName = 'importacao_clientes_f.csv';
     } else if (type === 'Servicos') {
-      webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-servicos';
+      webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook/importacao-servicos';
       downloadFileName = 'importacao_servicos_f.csv';
     } else if (type === 'Produtos') {
-      webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook-test/importacao-produtos';
+      webhookUrl = 'https://leofreesemagalhaes2006.app.n8n.cloud/webhook/importacao-produtos';
       downloadFileName = 'importacao_produtos_f.csv';
     } else {
       return res.status(400).json({ error: "Tipo inválido. Use 'Clientes' ou 'Servicos'" });
